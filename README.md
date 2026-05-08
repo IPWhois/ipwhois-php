@@ -10,7 +10,7 @@ Official, dependency-free PHP client for the [ipwhois.io](https://ipwhois.io) IP
 - ✅ Works with both the **Free** and **Paid** plans
 - ✅ HTTPS by default
 - ✅ Localisation, field selection, threat detection, rate info
-- ✅ Typed exceptions for clean error handling
+- ✅ Never throws — all errors returned as `success: false` arrays
 - ✅ No external dependencies — only the cURL extension
 - ✅ PHP 8.0+
 
