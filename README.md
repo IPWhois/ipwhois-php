@@ -176,33 +176,52 @@ foreach ($results as $row) {
 
 ## Error handling
 
-The library throws specific exceptions so you can react accordingly:
+**The library never throws.** Every failure — invalid IP, bad API key, rate
+limit, network outage, missing extension, bad options — comes back inside
+the response array with `success => false` and a `message`. Just check
+`$info['success']` after every call:
 
 ```php
-use Ipwhois\Client;
-use Ipwhois\Exception\ApiException;
-use Ipwhois\Exception\AuthenticationException;
-use Ipwhois\Exception\NetworkException;
-use Ipwhois\Exception\RateLimitException;
+$info = $client->lookup('8.8.8.8');
 
-try {
-    $info = (new Client('YOUR_API_KEY'))->lookup('8.8.8.8');
-} catch (AuthenticationException $e) {
-    // HTTP 401 — invalid API key or expired subscription
-} catch (RateLimitException $e) {
-    // HTTP 429 — back off, then retry
-    sleep($e->getRetryAfter() ?? 60);
-} catch (ApiException $e) {
-    // Any other API error, including HTTP 200 with success=false
-    // (e.g. "Invalid IP address", "Reserved range")
-    error_log("API error {$e->getStatusCode()}: {$e->getMessage()}");
-} catch (NetworkException $e) {
-    // DNS failure, connection timeout, malformed JSON, …
+if (!$info['success']) {
+    error_log("Lookup failed: {$info['message']}");
+    return;
 }
+
+echo $info['country'];
 ```
 
-All exceptions extend `Ipwhois\Exception\IpwhoisException`, so a single
-`catch (\Ipwhois\Exception\IpwhoisException $e)` works as a catch-all.
+This means an outage of the ipwhois.io API (or of your server's DNS,
+connection, etc.) will never surface as a fatal error in your application —
+you decide how to react.
+
+### Error response fields
+
+Every error response contains `success: false` and a `message`. Some errors
+include extra fields you can branch on:
+
+| Field          | When it's present                                                       |
+| -------------- | ----------------------------------------------------------------------- |
+| `error_type`   | `'network'`, `'environment'`, or `'invalid_argument'` — for non-API errors |
+| `http_status`  | On HTTP 4xx / 5xx responses                                             |
+| `retry_after`  | On HTTP 429 if the API sent a `Retry-After` header                      |
+
+```php
+$info = $client->lookup('8.8.8.8');
+
+if (!$info['success']) {
+    if (($info['http_status'] ?? 0) === 429) {
+        sleep($info['retry_after'] ?? 60);
+        // …retry
+    }
+    if (($info['error_type'] ?? null) === 'network') {
+        // DNS failure, connection refused, timeout, …
+    }
+    error_log("Error: {$info['message']}");
+    return;
+}
+```
 
 ## Response shape
 
@@ -268,6 +287,18 @@ A successful response includes (depending on your plan and selected options):
 ```
 
 For the full field reference, see the [official documentation](https://ipwhois.io/documentation).
+
+An **error** response looks like:
+
+```jsonc
+{
+    "success": false,
+    "message": "Invalid IP address",
+    "http_status": 400         // present for HTTP 4xx / 5xx
+    // "retry_after": 60       // additionally present on HTTP 429 if the API sent a Retry-After header
+    // "error_type": "network" // present for non-API errors: 'network', 'environment', 'invalid_argument'
+}
+```
 
 ## Requirements
 

@@ -4,11 +4,6 @@ declare(strict_types=1);
 
 namespace Ipwhois;
 
-use Ipwhois\Exception\ApiException;
-use Ipwhois\Exception\AuthenticationException;
-use Ipwhois\Exception\NetworkException;
-use Ipwhois\Exception\RateLimitException;
-
 /**
  * PHP client for the ipwhois.io IP Geolocation API.
  *
@@ -26,11 +21,18 @@ use Ipwhois\Exception\RateLimitException;
  *   $list = $client->bulkLookup(['8.8.8.8', '1.1.1.1', '208.67.222.222']);
  *
  *   // HTTPS is enabled by default. Pass ['ssl' => false] to fall back to HTTP.
+ *
+ * Error handling
+ * --------------
+ * The library never throws. All errors — invalid input, network failure,
+ * API-level errors (bad IP, bad key, rate limit, …) — are returned in the
+ * response array with `success => false` and a `message`. Just check
+ * `$info['success']` after every call.
  */
 final class Client
 {
     /** Library version, used in the default User-Agent header. */
-    public const VERSION = '1.0.1';
+    public const VERSION = '1.1.0';
 
     /** Free-plan endpoint host (used when no API key is provided). */
     public const HOST_FREE = 'ipwho.is';
@@ -65,10 +67,6 @@ final class Client
      */
     public function __construct(?string $apiKey = null, array $options = [])
     {
-        if (!\extension_loaded('curl')) {
-            throw new NetworkException('The cURL PHP extension is required by ipwhois/ipwhois-php.');
-        }
-
         $this->apiKey = $apiKey;
 
         if (isset($options['timeout'])) {
@@ -97,19 +95,23 @@ final class Client
      * Pass `null` (or call without arguments) to look up the caller's own
      * public IP, as documented at https://ipwhois.io/documentation.
      *
+     * The library never throws — check `$result['success']` after every call.
+     *
      * @param string|null $ip      IPv4 or IPv6 address. Null = current IP.
      * @param array       $options Per-call options: `lang`, `fields`,
      *                             `security` (bool), `rate` (bool), `output`.
      *
-     * @return array<string, mixed> Decoded JSON response.
-     *
-     * @throws ApiException            On any API-level error.
-     * @throws AuthenticationException On HTTP 401 (paid plan, bad key).
-     * @throws RateLimitException      On HTTP 429.
-     * @throws NetworkException        On transport / parsing failure.
+     * @return array<string, mixed> Decoded JSON response. On any error (API,
+     *                              network, bad input, missing extension) the
+     *                              array contains `success => false` and
+     *                              `message`. The library never throws.
      */
     public function lookup(?string $ip = null, array $options = []): array
     {
+        if (($error = $this->validateOptions($options)) !== null) {
+            return $error;
+        }
+
         $path = $ip !== null ? '/' . rawurlencode($ip) : '/';
         $url  = $this->buildUrl($path, $options);
 
@@ -125,26 +127,41 @@ final class Client
      *
      * Available on the Business and Unlimited plans only.
      *
+     * Per-IP errors are returned inline with `success => false` for the
+     * affected entry; the rest of the batch is still usable. If the whole
+     * call fails, the response is a single error array with `success => false`
+     * instead of a list.
+     *
      * @param string[] $ips     Up to 100 IPv4/IPv6 addresses (mixable).
      * @param array    $options Per-call options (same keys as {@see lookup()}).
      *
-     * @return array<int, array<string, mixed>> List of results, one per input IP.
-     *
-     * @throws ApiException
-     * @throws AuthenticationException
-     * @throws RateLimitException
-     * @throws NetworkException
-     * @throws \InvalidArgumentException If the input list is empty or too large.
+     * @return array<int|string, mixed> List of per-IP results on success;
+     *                                  a single error array on whole-batch
+     *                                  failure. The library never throws.
      */
     public function bulkLookup(array $ips, array $options = []): array
     {
         if ($ips === []) {
-            throw new \InvalidArgumentException('Bulk lookup requires at least one IP address.');
+            return [
+                'success'    => false,
+                'message'    => 'Bulk lookup requires at least one IP address.',
+                'error_type' => 'invalid_argument',
+            ];
         }
         if (\count($ips) > self::BULK_LIMIT) {
-            throw new \InvalidArgumentException(
-                sprintf('Bulk lookup accepts at most %d IP addresses per call.', self::BULK_LIMIT)
-            );
+            return [
+                'success'    => false,
+                'message'    => sprintf(
+                    'Bulk lookup accepts at most %d IP addresses per call, got %d.',
+                    self::BULK_LIMIT,
+                    \count($ips)
+                ),
+                'error_type' => 'invalid_argument',
+            ];
+        }
+
+        if (($error = $this->validateOptions($options)) !== null) {
+            return $error;
         }
 
         // The API accepts addresses joined by commas — no URL-encoding of the
@@ -152,12 +169,7 @@ final class Client
         $joined = implode(',', array_map(static fn ($ip) => rawurlencode((string) $ip), $ips));
         $url    = $this->buildUrl('/bulk/' . $joined, $options);
 
-        $data = $this->request($url);
-
-        // The bulk endpoint returns either a JSON array of results, or — on
-        // API-level failure — an associative error object. The latter has
-        // already been turned into an ApiException by request().
-        return $data;
+        return $this->request($url);
     }
 
     /**
@@ -222,6 +234,49 @@ final class Client
     /* ------------------------------------------------------------------ */
 
     /**
+     * Validate per-call options. Returns an error array on the first invalid
+     * option, or null if everything looks OK.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function validateOptions(array $options): ?array
+    {
+        $merged = array_replace($this->defaults, $options);
+
+        if (isset($merged['lang'])) {
+            $lang = (string) $merged['lang'];
+            if (!\in_array($lang, self::SUPPORTED_LANGUAGES, true)) {
+                return [
+                    'success'    => false,
+                    'message'    => sprintf(
+                        'Unsupported language "%s". Supported: %s.',
+                        $lang,
+                        implode(', ', self::SUPPORTED_LANGUAGES)
+                    ),
+                    'error_type' => 'invalid_argument',
+                ];
+            }
+        }
+
+        if (isset($merged['output'])) {
+            $output = (string) $merged['output'];
+            if (!\in_array($output, self::SUPPORTED_OUTPUTS, true)) {
+                return [
+                    'success'    => false,
+                    'message'    => sprintf(
+                        'Unsupported output format "%s". Supported: %s.',
+                        $output,
+                        implode(', ', self::SUPPORTED_OUTPUTS)
+                    ),
+                    'error_type' => 'invalid_argument',
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Build the full HTTPS URL for a given path + options.
      */
     private function buildUrl(string $path, array $options): string
@@ -238,27 +293,11 @@ final class Client
         }
 
         if (isset($merged['lang'])) {
-            $lang = (string) $merged['lang'];
-            if (!\in_array($lang, self::SUPPORTED_LANGUAGES, true)) {
-                throw new \InvalidArgumentException(sprintf(
-                    'Unsupported language "%s". Supported: %s.',
-                    $lang,
-                    implode(', ', self::SUPPORTED_LANGUAGES)
-                ));
-            }
-            $query['lang'] = $lang;
+            $query['lang'] = (string) $merged['lang'];
         }
 
         if (isset($merged['output'])) {
-            $output = (string) $merged['output'];
-            if (!\in_array($output, self::SUPPORTED_OUTPUTS, true)) {
-                throw new \InvalidArgumentException(sprintf(
-                    'Unsupported output format "%s". Supported: %s.',
-                    $output,
-                    implode(', ', self::SUPPORTED_OUTPUTS)
-                ));
-            }
-            $query['output'] = $output;
+            $query['output'] = (string) $merged['output'];
         }
 
         if (isset($merged['fields'])) {
@@ -290,6 +329,14 @@ final class Client
      */
     private function request(string $url): array
     {
+        if (!\extension_loaded('curl')) {
+            return [
+                'success'    => false,
+                'message'    => 'The cURL PHP extension is required by ipwhois/ipwhois-php.',
+                'error_type' => 'environment',
+            ];
+        }
+
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL            => $url,
@@ -314,7 +361,11 @@ final class Client
             $err = curl_error($ch);
             $no  = curl_errno($ch);
             curl_close($ch);
-            throw new NetworkException(sprintf('cURL error (%d): %s', $no, $err));
+            return [
+                'success'    => false,
+                'message'    => sprintf('Network error (cURL %d): %s', $no, $err),
+                'error_type' => 'network',
+            ];
         }
 
         $statusCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
@@ -337,19 +388,17 @@ final class Client
                     return ['raw' => $body];
                 }
 
-                // Non-JSON 4xx/5xx — surface as an ApiException carrying the
-                // HTTP status, which is more useful to the caller than a
-                // generic JSON-decode error.
+                // Non-JSON 4xx/5xx — synthesise an error array so the caller
+                // can handle it the same way as a normal API error.
                 $snippet = trim((string) preg_replace('/\s+/', ' ', $body));
                 if (\strlen($snippet) > 200) {
                     $snippet = substr($snippet, 0, 200) . '…';
                 }
-                throw new ApiException(
-                    sprintf('HTTP %d returned by ipwhois API: %s', $statusCode, $snippet),
-                    $statusCode,
-                    null,
-                    $e
-                );
+                return [
+                    'success'     => false,
+                    'message'     => sprintf('HTTP %d returned by ipwhois API: %s', $statusCode, $snippet),
+                    'http_status' => $statusCode,
+                ];
             }
         }
 
@@ -357,34 +406,31 @@ final class Client
             $decoded = $decoded === null ? [] : ['value' => $decoded];
         }
 
-        // Application-level error returned with HTTP 200 (e.g. "Invalid IP
-        // address", "Reserved range") — surface as ApiException.
-        if ($statusCode >= 200 && $statusCode < 300
-            && isset($decoded['success']) && $decoded['success'] === false
-        ) {
-            throw new ApiException(
-                (string) ($decoded['message'] ?? 'API returned success=false'),
-                $statusCode,
-                $decoded
-            );
-        }
-
+        // For HTTP errors, normalise into a `success => false` array so the
+        // caller doesn't have to inspect HTTP status separately.
         if ($statusCode >= 400) {
-            $message = \is_array($decoded) && isset($decoded['message'])
-                ? (string) $decoded['message']
-                : sprintf('HTTP %d returned by ipwhois API', $statusCode);
+            if (isset($decoded['success']) && $decoded['success'] === false) {
+                // The API already shaped the error correctly — just enrich it.
+                $decoded['http_status'] = $statusCode;
+            } else {
+                $message = isset($decoded['message'])
+                    ? (string) $decoded['message']
+                    : sprintf('HTTP %d returned by ipwhois API', $statusCode);
+                $decoded = [
+                    'success'     => false,
+                    'message'     => $message,
+                    'http_status' => $statusCode,
+                ];
+            }
 
-            throw match ($statusCode) {
-                401     => new AuthenticationException($message, $statusCode, $decoded),
-                429     => new RateLimitException(
-                    $message,
-                    $statusCode,
-                    $decoded,
-                    isset($headers['retry-after']) ? (int) $headers['retry-after'] : null
-                ),
-                default => new ApiException($message, $statusCode, $decoded),
-            };
+            if ($statusCode === 429 && isset($headers['retry-after'])) {
+                $decoded['retry_after'] = (int) $headers['retry-after'];
+            }
         }
+
+        // For HTTP 2xx with `success => false` (e.g. "Invalid IP address",
+        // "Reserved range") we just pass the body through — it's already
+        // shaped correctly by the API.
 
         return $decoded;
     }

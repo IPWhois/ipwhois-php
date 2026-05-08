@@ -102,33 +102,39 @@ final class ClientTest extends TestCase
         self::assertStringNotContainsString('lang=ru', $url);
     }
 
-    public function testInvalidLanguageIsRejected(): void
+    public function testInvalidLanguageReturnsErrorArray(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $result = (new Client())->lookup('8.8.8.8', ['lang' => 'klingon']);
 
-        $this->buildUrl(new Client(), '/', ['lang' => 'klingon']);
+        self::assertFalse($result['success']);
+        self::assertSame('invalid_argument', $result['error_type'] ?? null);
+        self::assertStringContainsString('klingon', $result['message'] ?? '');
     }
 
-    public function testInvalidOutputIsRejected(): void
+    public function testInvalidOutputReturnsErrorArray(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $result = (new Client())->lookup('8.8.8.8', ['output' => 'yaml']);
 
-        $this->buildUrl(new Client(), '/', ['output' => 'yaml']);
+        self::assertFalse($result['success']);
+        self::assertSame('invalid_argument', $result['error_type'] ?? null);
+        self::assertStringContainsString('yaml', $result['message'] ?? '');
     }
 
     public function testBulkLookupRefusesEmptyList(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $result = (new Client('K'))->bulkLookup([]);
 
-        (new Client('K'))->bulkLookup([]);
+        self::assertFalse($result['success']);
+        self::assertSame('invalid_argument', $result['error_type'] ?? null);
     }
 
     public function testBulkLookupRefusesMoreThanLimit(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-
         $tooMany = array_fill(0, Client::BULK_LIMIT + 1, '8.8.8.8');
-        (new Client('K'))->bulkLookup($tooMany);
+        $result  = (new Client('K'))->bulkLookup($tooMany);
+
+        self::assertFalse($result['success']);
+        self::assertSame('invalid_argument', $result['error_type'] ?? null);
     }
 
     public function testBulkUrlIsCommaSeparated(): void
