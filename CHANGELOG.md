@@ -5,6 +5,18 @@ All notable changes to `ipwhois/ipwhois-php` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-05-08
+
+### Fixed
+
+- Non-JSON responses (when `output=xml` or `output=csv` is requested) now
+  include `success => true` alongside the `raw` payload, so the universal
+  `if (!$info['success'])` check documented in README works for these
+  responses too. Previously they only contained the `raw` key, which made
+  a `!$info['success']` check evaluate to `true` for a successful response.
+- Updated the `examples/defaults.php` example to actually follow the
+  success-check contract documented in README.
+
 ## [1.1.0] - 2026-05-08
 
 ### Changed

@@ -32,7 +32,7 @@ namespace Ipwhois;
 final class Client
 {
     /** Library version, used in the default User-Agent header. */
-    public const VERSION = '1.1.0';
+    public const VERSION = '1.1.1';
 
     /** Free-plan endpoint host (used when no API key is provided). */
     public const HOST_FREE = 'ipwho.is';
@@ -383,9 +383,11 @@ final class Client
             } catch (\JsonException $e) {
                 // Non-JSON output is legitimate when output=xml or output=csv
                 // was requested — return a thin wrapper so the caller still
-                // gets the raw payload.
+                // gets the raw payload. `success: true` is included so the
+                // universal `if (!$info['success'])` check from the README
+                // works for these responses too.
                 if ($statusCode >= 200 && $statusCode < 300) {
-                    return ['raw' => $body];
+                    return ['success' => true, 'raw' => $body];
                 }
 
                 // Non-JSON 4xx/5xx — synthesise an error array so the caller

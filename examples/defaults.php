@@ -18,12 +18,23 @@ $client = (new Client('YOUR_API_KEY'))
     ->setTimeout(8);
 
 // Both calls below will use lang=en, the field whitelist, and security=1.
-$google = $client->lookup('8.8.8.8');
-$cf     = $client->lookup('1.1.1.1');
-
-echo "{$google['country']} / {$google['city']} {$google['flag']['emoji']}\n";
-echo "{$cf['country']} / {$cf['city']} {$cf['flag']['emoji']}\n";
+foreach (['8.8.8.8', '1.1.1.1'] as $ip) {
+    $info = $client->lookup($ip);
+    if (!$info['success']) {
+        fprintf(STDERR, "%s: %s\n", $ip, $info['message'] ?? 'error');
+        continue;
+    }
+    printf(
+        "%s: %s / %s %s\n",
+        $ip,
+        $info['country'],
+        $info['city'],
+        $info['flag']['emoji'] ?? ''
+    );
+}
 
 // One-off override — this single call uses German instead of English.
-$deOnly = $client->lookup('8.8.4.4', ['lang' => 'de']);
-echo "{$deOnly['country']} / {$deOnly['city']}\n";
+$info = $client->lookup('8.8.4.4', ['lang' => 'de']);
+if ($info['success']) {
+    printf("8.8.4.4 (de): %s / %s\n", $info['country'], $info['city']);
+}
