@@ -13,14 +13,20 @@ namespace Ipwhois\Exception;
  */
 class RateLimitException extends ApiException
 {
+    private ?int $retryAfter;
+
+    /**
+     * @param array<string, mixed>|null $response
+     */
     public function __construct(
         string $message,
         int $statusCode = 429,
         ?array $response = null,
-        private readonly ?int $retryAfter = null,
-        ?\Throwable $previous = null,
+        ?int $retryAfter = null,
+        ?\Throwable $previous = null
     ) {
         parent::__construct($message, $statusCode, $response, $previous);
+        $this->retryAfter = $retryAfter;
     }
 
     /**

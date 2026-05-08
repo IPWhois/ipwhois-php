@@ -30,7 +30,7 @@ use Ipwhois\Exception\RateLimitException;
 final class Client
 {
     /** Library version, used in the default User-Agent header. */
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.0.1';
 
     /** Free-plan endpoint host (used when no API key is provided). */
     public const HOST_FREE = 'ipwho.is';
@@ -51,6 +51,7 @@ final class Client
     private int $timeout = 10;
     private int $connectTimeout = 5;
     private bool $ssl = true;
+    private ?string $apiKey;
 
     /** Default options applied to every request unless overridden. */
     private array $defaults = [];
@@ -62,13 +63,13 @@ final class Client
      *                             `rate`, `output`, `ssl`, `timeout`,
      *                             `connect_timeout`, `user_agent`.
      */
-    public function __construct(
-        private readonly ?string $apiKey = null,
-        array $options = [],
-    ) {
+    public function __construct(?string $apiKey = null, array $options = [])
+    {
         if (!\extension_loaded('curl')) {
             throw new NetworkException('The cURL PHP extension is required by ipwhois/ipwhois-php.');
         }
+
+        $this->apiKey = $apiKey;
 
         if (isset($options['timeout'])) {
             $this->timeout = (int) $options['timeout'];

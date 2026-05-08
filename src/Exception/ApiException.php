@@ -17,13 +17,23 @@ namespace Ipwhois\Exception;
  */
 class ApiException extends IpwhoisException
 {
+    private int $statusCode;
+
+    /** @var array<string, mixed>|null */
+    private ?array $response;
+
+    /**
+     * @param array<string, mixed>|null $response
+     */
     public function __construct(
         string $message,
-        private readonly int $statusCode = 0,
-        private readonly ?array $response = null,
-        ?\Throwable $previous = null,
+        int $statusCode = 0,
+        ?array $response = null,
+        ?\Throwable $previous = null
     ) {
         parent::__construct($message, $statusCode, $previous);
+        $this->statusCode = $statusCode;
+        $this->response   = $response;
     }
 
     /**
