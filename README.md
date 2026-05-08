@@ -269,16 +269,6 @@ A successful response includes (depending on your plan and selected options):
 
 For the full field reference, see the [official documentation](https://ipwhois.io/documentation).
 
-## Testing
-
-```bash
-composer install
-vendor/bin/phpunit
-```
-
-The test suite does not perform network requests — `buildUrl()` is exercised
-through reflection so the tests run anywhere without an API key.
-
 ## Requirements
 
 - PHP **8.0** or newer
