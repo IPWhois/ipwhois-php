@@ -2,7 +2,7 @@
 
 [![Packagist Version](https://img.shields.io/packagist/v/ipwhois/ipwhois-php.svg)](https://packagist.org/packages/ipwhois/ipwhois-php)
 [![PHP Version](https://img.shields.io/packagist/php-v/ipwhois/ipwhois-php.svg)](https://packagist.org/packages/ipwhois/ipwhois-php)
-[![License: MIT](https://img.shields.io/github/license/IPWhois/ipwhois-php.svg?color=blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Official, dependency-free PHP client for the [ipwhois.io](https://ipwhois.io) IP Geolocation API.
 
