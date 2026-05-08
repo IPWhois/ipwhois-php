@@ -1,0 +1,50 @@
+{
+    "name": "ipwhois/ipwhois-php",
+    "description": "Official PHP client for the ipwhois.io IP Geolocation API. Simple, dependency-free, supports single and bulk IP lookups.",
+    "type": "library",
+    "keywords": [
+        "ipwhois",
+        "ip-api",
+        "ip-lookup",
+        "ip-geolocation",
+        "geolocation",
+        "geoip",
+        "ip-locator"
+    ],
+    "homepage": "https://ipwhois.io",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "ipwhois.io",
+            "homepage": "https://ipwhois.io"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/IPWhois/ipwhois-php/issues",
+        "source": "https://github.com/IPWhois/ipwhois-php",
+        "docs": "https://ipwhois.io/documentation"
+    },
+    "require": {
+        "php": "^8.0",
+        "ext-curl": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5 || ^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ipwhois\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ipwhois\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true
+    }
+}
