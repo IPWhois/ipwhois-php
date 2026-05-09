@@ -32,7 +32,7 @@ namespace Ipwhois;
 final class IPWhois
 {
     /** Library version, used in the default User-Agent header. */
-    public const VERSION = '1.1.2';
+    public const VERSION = '1.1.3';
 
     /** Free-plan endpoint host (used when no API key is provided). */
     public const HOST_FREE = 'ipwho.is';
