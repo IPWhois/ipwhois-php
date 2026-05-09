@@ -5,6 +5,34 @@ All notable changes to `ipwhois/ipwhois-php` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-05-09
+
+### Changed
+
+- **Renamed the main class `Client` to `IPWhois`** for consistency with the
+  package and brand. The fully-qualified name is now `\Ipwhois\IPWhois`. The
+  source file moved from `src/Client.php` to `src/IPWhois.php`, and the test
+  class from `tests/ClientTest.php` to `tests/IPWhoisTest.php`. Public
+  behaviour, method signatures, constructor arguments, and return shapes are
+  all unchanged.
+
+### Migration
+
+```php
+// Before (1.1.1):
+use Ipwhois\Client;
+$client = new Client('YOUR_API_KEY');
+$info   = $client->lookup('8.8.8.8');
+
+// After (1.1.2+):
+use Ipwhois\IPWhois;
+$ipwhois = new IPWhois('YOUR_API_KEY');
+$info    = $ipwhois->lookup('8.8.8.8');
+```
+
+The variable name (`$client`, `$ipwhois`, anything else) is up to you; only
+the class identifier changed.
+
 ## [1.1.1] - 2026-05-08
 
 ### Fixed
@@ -37,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```php
 // Before (1.0.x):
 try {
-    $info = $client->lookup('bad.ip');
+    $info = $ipwhois->lookup('bad.ip');
 } catch (\Ipwhois\Exception\ApiException $e) {
     error_log($e->getMessage());
 } catch (\Ipwhois\Exception\NetworkException $e) {
@@ -45,7 +73,7 @@ try {
 }
 
 // After (1.1.0+):
-$info = $client->lookup('bad.ip');
+$info = $ipwhois->lookup('bad.ip');
 if (!$info['success']) {
     error_log($info['message']);
 }
@@ -75,8 +103,8 @@ if (!$info['success']) {
 ### Added
 
 - Initial release.
-- `Client::lookup()` — single IP lookup (IPv4 / IPv6, or current IP).
-- `Client::bulkLookup()` — up to 100 IPs in a single GET request (paid plan).
+- `IPWhois::lookup()` — single IP lookup (IPv4 / IPv6, or current IP).
+- `IPWhois::bulkLookup()` — up to 100 IPs in a single GET request (paid plan).
 - Localisation, field filtering, threat detection (`security`), rate info.
 - Optional `'ssl' => false` flag to fall back to HTTP.
 - Typed exceptions: `IpwhoisException`, `ApiException`,

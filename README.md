@@ -22,7 +22,7 @@ composer require ipwhois/ipwhois-php
 
 ## Free vs Paid plan
 
-The same `Client` class is used for both plans. The only difference is whether
+The same `IPWhois` class is used for both plans. The only difference is whether
 you pass an API key:
 
 - **Free plan** — create the client **without arguments**. No API key, no
@@ -32,8 +32,8 @@ you pass an API key:
   threat-detection data.
 
 ```php
-$free = new \Ipwhois\Client();               // Free plan — no API key
-$paid = new \Ipwhois\Client('YOUR_API_KEY'); // Paid plan — with API key
+$free = new \Ipwhois\IPWhois();               // Free plan — no API key
+$paid = new \Ipwhois\IPWhois('YOUR_API_KEY'); // Paid plan — with API key
 ```
 
 Everything else (`lookup()`, options, error handling) is identical.
@@ -43,11 +43,11 @@ Everything else (`lookup()`, options, error handling) is identical.
 ```php
 require 'vendor/autoload.php';
 
-use Ipwhois\Client;
+use Ipwhois\IPWhois;
 
-$client = new Client(); // no API key
+$ipwhois = new IPWhois(); // no API key
 
-$info = $client->lookup('8.8.8.8');
+$info = $ipwhois->lookup('8.8.8.8');
 
 echo $info['country'] . ' ' . $info['flag']['emoji'] . PHP_EOL;
 // → United States 🇺🇸
@@ -63,11 +63,11 @@ Get an API key at <https://ipwhois.io> and pass it to the constructor:
 ```php
 require 'vendor/autoload.php';
 
-use Ipwhois\Client;
+use Ipwhois\IPWhois;
 
-$client = new Client('YOUR_API_KEY'); // with API key
+$ipwhois = new IPWhois('YOUR_API_KEY'); // with API key
 
-$info = $client->lookup('8.8.8.8');
+$info = $ipwhois->lookup('8.8.8.8');
 
 echo $info['country'] . ' ' . $info['flag']['emoji'] . PHP_EOL;
 // → United States 🇺🇸
@@ -76,7 +76,7 @@ echo $info['city'] . ', ' . $info['region'] . PHP_EOL;
 // → Mountain View, California
 ```
 
-> ℹ️ Pass nothing to look up your own public IP: `$client->lookup();` — works
+> ℹ️ Pass nothing to look up your own public IP: `$ipwhois->lookup();` — works
 > on both plans.
 
 ## Lookup options
@@ -98,24 +98,24 @@ If you make many calls with the same options, set them once and forget:
 
 ```php
 // Free plan
-$client = (new Client())
+$ipwhois = (new IPWhois())
     ->setLanguage('en')
     ->setFields(['country', 'city', 'flag.emoji'])
     ->setTimeout(8);
 
-$client->lookup('8.8.8.8');                   // uses all of the above
-$client->lookup('1.1.1.1', ['lang' => 'de']); // per-call options override defaults
+$ipwhois->lookup('8.8.8.8');                   // uses all of the above
+$ipwhois->lookup('1.1.1.1', ['lang' => 'de']); // per-call options override defaults
 ```
 
 ```php
 // Paid plan
-$client = (new Client('YOUR_API_KEY'))
+$ipwhois = (new IPWhois('YOUR_API_KEY'))
     ->setLanguage('en')
     ->setFields(['country', 'city', 'flag.emoji'])
     ->setTimeout(8);
 
-$client->lookup('8.8.8.8');                   // uses all of the above
-$client->lookup('1.1.1.1', ['lang' => 'de']); // per-call options override defaults
+$ipwhois->lookup('8.8.8.8');                   // uses all of the above
+$ipwhois->lookup('1.1.1.1', ['lang' => 'de']); // per-call options override defaults
 ```
 
 > ℹ️ Paid plans additionally support `setSecurity(true)` (Business+) and
@@ -128,17 +128,17 @@ example, in environments without an up-to-date CA bundle), pass `'ssl' => false`
 to the constructor:
 
 ```php
-use Ipwhois\Client;
+use Ipwhois\IPWhois;
 
 // Free plan
-$client = new Client(null, ['ssl' => false]);
+$ipwhois = new IPWhois(null, ['ssl' => false]);
 ```
 
 ```php
-use Ipwhois\Client;
+use Ipwhois\IPWhois;
 
 // Paid plan
-$client = new Client('YOUR_API_KEY', ['ssl' => false]);
+$ipwhois = new IPWhois('YOUR_API_KEY', ['ssl' => false]);
 ```
 
 > ℹ️ HTTPS is strongly recommended for production traffic — your API key is
@@ -151,9 +151,9 @@ address counts as one credit. Available on the **Business** and **Unlimited**
 plans.
 
 ```php
-$client = new Client('YOUR_API_KEY');
+$ipwhois = new IPWhois('YOUR_API_KEY');
 
-$results = $client->bulkLookup([
+$results = $ipwhois->bulkLookup([
     '8.8.8.8',
     '1.1.1.1',
     '208.67.222.222',
@@ -182,7 +182,7 @@ the response array with `success => false` and a `message`. Just check
 `$info['success']` after every call:
 
 ```php
-$info = $client->lookup('8.8.8.8');
+$info = $ipwhois->lookup('8.8.8.8');
 
 if (!$info['success']) {
     error_log("Lookup failed: {$info['message']}");
@@ -208,7 +208,7 @@ include extra fields you can branch on:
 | `retry_after`  | On HTTP 429 if the API sent a `Retry-After` header                      |
 
 ```php
-$info = $client->lookup('8.8.8.8');
+$info = $ipwhois->lookup('8.8.8.8');
 
 if (!$info['success']) {
     if (($info['http_status'] ?? 0) === 429) {

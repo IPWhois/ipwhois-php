@@ -10,15 +10,15 @@ namespace Ipwhois;
  * Quick start
  * -----------
  *   // Free plan (no API key, ~1 request/second per client IP)
- *   $client = new \Ipwhois\Client();
- *   $info   = $client->lookup('8.8.8.8');
+ *   $ipwhois = new \Ipwhois\IPWhois();
+ *   $info   = $ipwhois->lookup('8.8.8.8');
  *
  *   // Paid plan (with API key, higher limits, bulk, security data, …)
- *   $client = new \Ipwhois\Client('YOUR_API_KEY');
- *   $info   = $client->lookup('8.8.8.8', ['lang' => 'en', 'security' => true]);
+ *   $ipwhois = new \Ipwhois\IPWhois('YOUR_API_KEY');
+ *   $info   = $ipwhois->lookup('8.8.8.8', ['lang' => 'en', 'security' => true]);
  *
  *   // Bulk lookup — up to 100 IPs in one call (paid only)
- *   $list = $client->bulkLookup(['8.8.8.8', '1.1.1.1', '208.67.222.222']);
+ *   $list = $ipwhois->bulkLookup(['8.8.8.8', '1.1.1.1', '208.67.222.222']);
  *
  *   // HTTPS is enabled by default. Pass ['ssl' => false] to fall back to HTTP.
  *
@@ -29,10 +29,10 @@ namespace Ipwhois;
  * response array with `success => false` and a `message`. Just check
  * `$info['success']` after every call.
  */
-final class Client
+final class IPWhois
 {
     /** Library version, used in the default User-Agent header. */
-    public const VERSION = '1.1.1';
+    public const VERSION = '1.1.2';
 
     /** Free-plan endpoint host (used when no API key is provided). */
     public const HOST_FREE = 'ipwho.is';

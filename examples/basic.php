@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use Ipwhois\Client;
+use Ipwhois\IPWhois;
 
 /* -----------------------------------------------------------------------
  * 1) Free plan — no API key, ~1 request/second per client IP.
  * -------------------------------------------------------------------- */
-$client = new Client();
+$ipwhois = new IPWhois();
 
-$info = $client->lookup('8.8.8.8');
+$info = $ipwhois->lookup('8.8.8.8');
 
 // All errors — invalid IP, network failure, bad options, … — come back here
 // with success === false. The library never throws.
@@ -31,7 +31,7 @@ echo sprintf(
 /* -----------------------------------------------------------------------
  * 2) Look up the caller's own IP — pass nothing (or null).
  * -------------------------------------------------------------------- */
-$me = $client->lookup();
+$me = $ipwhois->lookup();
 if ($me['success']) {
     echo "My IP: {$me['ip']} — {$me['country']}\n";
 }
@@ -39,7 +39,7 @@ if ($me['success']) {
 /* -----------------------------------------------------------------------
  * 3) Paid plan — supply the API key.
  * -------------------------------------------------------------------- */
-$paid = new Client('YOUR_API_KEY');
+$paid = new IPWhois('YOUR_API_KEY');
 
 $info = $paid->lookup('1.1.1.1', [
     'lang'     => 'en',                              // localised country/city/…

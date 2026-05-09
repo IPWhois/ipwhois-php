@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use Ipwhois\Client;
+use Ipwhois\IPWhois;
 
 /*
  * Bulk lookup is available on the Business and Unlimited plans only.
@@ -16,7 +16,7 @@ use Ipwhois\Client;
  * counts as one credit.
  */
 
-$client = new Client('YOUR_API_KEY');
+$ipwhois = new IPWhois('YOUR_API_KEY');
 
 $ips = [
     '8.8.8.8',
@@ -25,7 +25,7 @@ $ips = [
     '2c0f:fb50:4003::',     // IPv6 is fine too — mix freely
 ];
 
-$results = $client->bulkLookup($ips, [
+$results = $ipwhois->bulkLookup($ips, [
     'lang'     => 'en',
     'security' => true,
 ]);
