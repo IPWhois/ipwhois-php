@@ -7,13 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.3] - 2026-05-09
 
-### Fixed
+### Changed
 
-- Republished the 1.1.2 release. The `v1.1.2` tag was created on a commit
-  that did not yet contain the renamed source files, so Packagist published
-  pre-rename code under that tag. 1.1.3 ships the actual rename described
-  under 1.1.2 below. **If you upgraded to 1.1.2 already, please upgrade to
-  1.1.3** to receive the renamed `IPWhois` class.
+- Bumped `IPWhois::VERSION` constant to `1.1.3` (in 1.1.2 it was still set
+  to `1.1.2`, this release just keeps the constant in sync with the actual
+  released tag). No functional changes since 1.1.2.
 
 ## [1.1.2] - 2026-05-09
 
