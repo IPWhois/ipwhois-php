@@ -111,15 +111,6 @@ final class IPWhoisTest extends TestCase
         self::assertStringContainsString('klingon', $result['message'] ?? '');
     }
 
-    public function testInvalidOutputReturnsErrorArray(): void
-    {
-        $result = (new IPWhois())->lookup('8.8.8.8', ['output' => 'yaml']);
-
-        self::assertFalse($result['success']);
-        self::assertSame('invalid_argument', $result['error_type'] ?? null);
-        self::assertStringContainsString('yaml', $result['message'] ?? '');
-    }
-
     public function testBulkLookupRefusesEmptyList(): void
     {
         $result = (new IPWhois('K'))->bulkLookup([]);

@@ -13,7 +13,7 @@ use Ipwhois\IPWhois;
 
 $ipwhois = (new IPWhois('YOUR_API_KEY'))
     ->setLanguage('en')
-    ->setFields(['country', 'city', 'flag.emoji', 'connection.isp'])
+    ->setFields(['success', 'country', 'city', 'flag.emoji', 'connection.isp'])
     ->setSecurity(true)
     ->setTimeout(8);
 

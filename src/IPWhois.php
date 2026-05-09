@@ -32,7 +32,7 @@ namespace Ipwhois;
 final class IPWhois
 {
     /** Library version, used in the default User-Agent header. */
-    public const VERSION = '1.1.3';
+    public const VERSION = '1.1.4';
 
     /** Free-plan endpoint host (used when no API key is provided). */
     public const HOST_FREE = 'ipwho.is';
@@ -45,9 +45,6 @@ final class IPWhois
 
     /** Languages supported by the `lang` parameter. */
     public const SUPPORTED_LANGUAGES = ['en', 'ru', 'de', 'es', 'pt-BR', 'fr', 'zh-CN', 'ja'];
-
-    /** Output formats supported by the `output` parameter. */
-    public const SUPPORTED_OUTPUTS = ['json', 'xml', 'csv'];
 
     private string $userAgent = 'ipwhois-php/' . self::VERSION;
     private int $timeout = 10;
@@ -62,8 +59,8 @@ final class IPWhois
      * @param string|null $apiKey  Your ipwhois.io API key. Omit for the free plan.
      * @param array       $options Optional defaults applied to every request.
      *                             Recognised keys: `lang`, `fields`, `security`,
-     *                             `rate`, `output`, `ssl`, `timeout`,
-     *                             `connect_timeout`, `user_agent`.
+     *                             `rate`, `ssl`, `timeout`, `connect_timeout`,
+     *                             `user_agent`.
      */
     public function __construct(?string $apiKey = null, array $options = [])
     {
@@ -99,7 +96,7 @@ final class IPWhois
      *
      * @param string|null $ip      IPv4 or IPv6 address. Null = current IP.
      * @param array       $options Per-call options: `lang`, `fields`,
-     *                             `security` (bool), `rate` (bool), `output`.
+     *                             `security` (bool), `rate` (bool).
      *
      * @return array<string, mixed> Decoded JSON response. On any error (API,
      *                              network, bad input, missing extension) the
@@ -186,7 +183,11 @@ final class IPWhois
     /**
      * Restrict every response to a fixed set of fields by default.
      *
-     * @param string[] $fields For example: ['country', 'city', 'flag.emoji'].
+     * Include `success` in the list if you rely on `$info['success']` for
+     * error checking — when `fields` is set, the API only returns the
+     * fields you ask for.
+     *
+     * @param string[] $fields For example: ['success', 'country', 'city', 'flag.emoji'].
      */
     public function setFields(array $fields): self
     {
@@ -258,21 +259,6 @@ final class IPWhois
             }
         }
 
-        if (isset($merged['output'])) {
-            $output = (string) $merged['output'];
-            if (!\in_array($output, self::SUPPORTED_OUTPUTS, true)) {
-                return [
-                    'success'    => false,
-                    'message'    => sprintf(
-                        'Unsupported output format "%s". Supported: %s.',
-                        $output,
-                        implode(', ', self::SUPPORTED_OUTPUTS)
-                    ),
-                    'error_type' => 'invalid_argument',
-                ];
-            }
-        }
-
         return null;
     }
 
@@ -294,10 +280,6 @@ final class IPWhois
 
         if (isset($merged['lang'])) {
             $query['lang'] = (string) $merged['lang'];
-        }
-
-        if (isset($merged['output'])) {
-            $query['output'] = (string) $merged['output'];
         }
 
         if (isset($merged['fields'])) {
@@ -381,24 +363,18 @@ final class IPWhois
             try {
                 $decoded = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
             } catch (\JsonException $e) {
-                // Non-JSON output is legitimate when output=xml or output=csv
-                // was requested — return a thin wrapper so the caller still
-                // gets the raw payload. `success: true` is included so the
-                // universal `if (!$info['success'])` check from the README
-                // works for these responses too.
-                if ($statusCode >= 200 && $statusCode < 300) {
-                    return ['success' => true, 'raw' => $body];
-                }
-
-                // Non-JSON 4xx/5xx — synthesise an error array so the caller
-                // can handle it the same way as a normal API error.
+                // The ipwhois API always returns JSON. A non-JSON body means
+                // something went wrong upstream (gateway error page, captive
+                // portal, hijacked response, …) — synthesise an error array
+                // so the caller can handle it the same way as a normal API
+                // error.
                 $snippet = trim((string) preg_replace('/\s+/', ' ', $body));
                 if (\strlen($snippet) > 200) {
                     $snippet = substr($snippet, 0, 200) . '…';
                 }
                 return [
                     'success'     => false,
-                    'message'     => sprintf('HTTP %d returned by ipwhois API: %s', $statusCode, $snippet),
+                    'message'     => sprintf('Invalid JSON returned by ipwhois API (HTTP %d): %s', $statusCode, $snippet),
                     'http_status' => $statusCode,
                 ];
             }

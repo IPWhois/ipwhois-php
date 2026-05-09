@@ -43,7 +43,7 @@ $paid = new IPWhois('YOUR_API_KEY');
 
 $info = $paid->lookup('1.1.1.1', [
     'lang'     => 'en',                              // localised country/city/…
-    'fields'   => ['country', 'city', 'connection.isp', 'flag.emoji'],
+    'fields'   => ['success', 'country', 'city', 'connection.isp', 'flag.emoji'],
     'security' => true,                              // include proxy/vpn/tor flags
     'rate'     => true,                              // include rate-limit info
 ]);

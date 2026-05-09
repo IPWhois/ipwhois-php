@@ -88,38 +88,38 @@ default.
 | ------------ | ------- | -------------------- | ---------------------------------------------------------------------- |
 | `lang`       | string  | Free + Paid          | One of: `en`, `ru`, `de`, `es`, `pt-BR`, `fr`, `zh-CN`, `ja`           |
 | `fields`     | array   | Free + Paid          | Restrict the response to specific fields (e.g. `['country', 'city']`)  |
-| `output`     | string  | Free + Paid          | `json` (default), `xml`, `csv`                                         |
 | `rate`       | bool    | Basic and above      | Include the `rate` block (`limit`, `remaining`)                        |
 | `security`   | bool    | Business and above   | Include the `security` block (proxy/vpn/tor/hosting)                   |
 
 ### Setting defaults once
 
-If you make many calls with the same options, set them once and forget:
+Every option can be passed two ways: **per call** (as the second argument to
+`lookup()` / `bulkLookup()`) or **once as a default** on the client. Per-call
+options always override the defaults, so it's safe to set sensible defaults
+and only override what differs for a specific call.
+
+Defaults are set with fluent setters — `setLanguage()`, `setFields()`,
+`setSecurity()`, `setRate()`, `setTimeout()`, `setConnectTimeout()`,
+`setUserAgent()` — and can be chained:
 
 ```php
-// Free plan
+// Pass 'YOUR_API_KEY' to the constructor for the paid plan; otherwise omit it.
 $ipwhois = (new IPWhois())
     ->setLanguage('en')
-    ->setFields(['country', 'city', 'flag.emoji'])
+    ->setFields(['success', 'country', 'city', 'flag.emoji'])
     ->setTimeout(8);
 
-$ipwhois->lookup('8.8.8.8');                   // uses all of the above
-$ipwhois->lookup('1.1.1.1', ['lang' => 'de']); // per-call options override defaults
+$ipwhois->lookup('8.8.8.8');                   // uses lang=en, the field whitelist, and timeout=8
+$ipwhois->lookup('1.1.1.1', ['lang' => 'de']); // overrides lang for this single call only
 ```
 
-```php
-// Paid plan
-$ipwhois = (new IPWhois('YOUR_API_KEY'))
-    ->setLanguage('en')
-    ->setFields(['country', 'city', 'flag.emoji'])
-    ->setTimeout(8);
+> ⚠️ When you restrict fields with `setFields()` (or the per-call `'fields'`
+> option), the API only returns the fields you ask for. Always include
+> `'success'` in the list if you rely on `$info['success']` for error
+> checking — otherwise the field will be missing on responses.
 
-$ipwhois->lookup('8.8.8.8');                   // uses all of the above
-$ipwhois->lookup('1.1.1.1', ['lang' => 'de']); // per-call options override defaults
-```
-
-> ℹ️ Paid plans additionally support `setSecurity(true)` (Business+) and
-> `setRate(true)` (Basic+). See the table above for what's available where.
+> ℹ️ `setSecurity(true)` requires Business+ and `setRate(true)` requires
+> Basic+. See the table above for what's available where.
 
 ## HTTPS Encryption
 
