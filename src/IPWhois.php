@@ -32,7 +32,7 @@ namespace Ipwhois;
 final class IPWhois
 {
     /** Library version, used in the default User-Agent header. */
-    public const VERSION = '1.1.4';
+    public const VERSION = '1.2.0';
 
     /** Free-plan endpoint host (used when no API key is provided). */
     public const HOST_FREE = 'ipwho.is';
@@ -376,6 +376,7 @@ final class IPWhois
                     'success'     => false,
                     'message'     => sprintf('Invalid JSON returned by ipwhois API (HTTP %d): %s', $statusCode, $snippet),
                     'http_status' => $statusCode,
+                    'error_type'  => 'api',
                 ];
             }
         }
@@ -401,9 +402,24 @@ final class IPWhois
                 ];
             }
 
-            if ($statusCode === 429 && isset($headers['retry-after'])) {
+            // `Retry-After` is only emitted by the free-plan endpoint
+            // (ipwho.is); the paid endpoint (ipwhois.pro) does not send the
+            // header, so don't try to read it there.
+            if ($statusCode === 429 && $this->apiKey === null && isset($headers['retry-after'])) {
                 $decoded['retry_after'] = (int) $headers['retry-after'];
             }
+        }
+
+        // Tag every API-shaped error (`success => false` returned by the API,
+        // on any HTTP status) with `error_type => 'api'` so callers can branch
+        // on the category alongside the non-API codes ('network',
+        // 'environment', 'invalid_argument'). HTTP 2xx + success=false bodies
+        // (e.g. "Invalid IP address", "Reserved range") are otherwise passed
+        // through untouched.
+        if (isset($decoded['success']) && $decoded['success'] === false
+            && !isset($decoded['error_type'])
+        ) {
+            $decoded['error_type'] = 'api';
         }
 
         // For HTTP 2xx with `success => false` (e.g. "Invalid IP address",

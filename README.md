@@ -103,12 +103,29 @@ Defaults are set with fluent setters — `setLanguage()`, `setFields()`,
 `setUserAgent()` — and can be chained:
 
 ```php
-// Pass 'YOUR_API_KEY' to the constructor for the paid plan; otherwise omit it.
+use Ipwhois\IPWhois;
+
+// Free plan
 $ipwhois = (new IPWhois())
     ->setLanguage('en')
     ->setFields(['success', 'country', 'city', 'flag.emoji'])
     ->setTimeout(8);
+```
 
+```php
+use Ipwhois\IPWhois;
+
+// Paid plan
+$ipwhois = (new IPWhois('YOUR_API_KEY'))
+    ->setLanguage('en')
+    ->setFields(['success', 'country', 'city', 'flag.emoji'])
+    ->setTimeout(8);
+```
+
+Either client behaves the same way at call time — per-call options always
+win over the defaults:
+
+```php
 $ipwhois->lookup('8.8.8.8');                   // uses lang=en, the field whitelist, and timeout=8
 $ipwhois->lookup('1.1.1.1', ['lang' => 'de']); // overrides lang for this single call only
 ```
@@ -198,14 +215,16 @@ you decide how to react.
 
 ### Error response fields
 
-Every error response contains `success: false` and a `message`. Some errors
-include extra fields you can branch on:
+Every error response contains `success: false`, a human-readable `message`,
+and an `error_type` so you can branch on the category of the failure. Some
+errors include extra fields you can branch on:
 
-| Field          | When it's present                                                       |
-| -------------- | ----------------------------------------------------------------------- |
-| `error_type`   | `'network'`, `'environment'`, or `'invalid_argument'` — for non-API errors |
-| `http_status`  | On HTTP 4xx / 5xx responses                                             |
-| `retry_after`  | On HTTP 429 if the API sent a `Retry-After` header                      |
+| Field          | When it's present                                                                            |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| `message`      | Always — human-readable description of what went wrong                                       |
+| `error_type`   | Always — one of `'api'`, `'network'`, `'environment'`, or `'invalid_argument'`               |
+| `http_status`  | On HTTP 4xx / 5xx responses                                                                  |
+| `retry_after`  | On HTTP 429 — **free plan only** (the paid endpoint does not send a `Retry-After` header)    |
 
 ```php
 $info = $ipwhois->lookup('8.8.8.8');
@@ -294,9 +313,9 @@ An **error** response looks like:
 {
     "success": false,
     "message": "Invalid IP address",
+    "error_type": "api",       // 'api' / 'network' / 'environment' / 'invalid_argument'
     "http_status": 400         // present for HTTP 4xx / 5xx
-    // "retry_after": 60       // additionally present on HTTP 429 if the API sent a Retry-After header
-    // "error_type": "network" // present for non-API errors: 'network', 'environment', 'invalid_argument'
+    // "retry_after": 60       // additionally present on HTTP 429 — free plan only
 }
 ```
 
