@@ -221,7 +221,7 @@ errors include extra fields you can branch on:
 
 | Field          | When it's present                                                                            |
 | -------------- | -------------------------------------------------------------------------------------------- |
-| `success`      | Always — false for error responses (true for successful responses)                                      |
+| `success`      | Always — false for error responses (true for successful responses)                           |
 | `message`      | Always — human-readable description of what went wrong                                       |
 | `error_type`   | Always — one of `'api'`, `'network'`, `'environment'`, or `'invalid_argument'`               |
 | `http_status`  | On HTTP 4xx / 5xx responses                                                                  |
