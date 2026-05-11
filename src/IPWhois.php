@@ -32,7 +32,7 @@ namespace Ipwhois;
 final class IPWhois
 {
     /** Library version, used in the default User-Agent header. */
-    public const VERSION = '1.2.0';
+    public const VERSION = '1.2.1';
 
     /** Free-plan endpoint host (used when no API key is provided). */
     public const HOST_FREE = 'ipwho.is';
@@ -342,7 +342,9 @@ final class IPWhois
         if ($raw === false) {
             $err = curl_error($ch);
             $no  = curl_errno($ch);
-            curl_close($ch);
+            // curl_close() has been a no-op since PHP 8.0 (curl_init() returns
+            // a CurlHandle object that is freed when it goes out of scope) and
+            // was deprecated in PHP 8.5.
             return [
                 'success'    => false,
                 'message'    => sprintf('Network error (cURL %d): %s', $no, $err),
@@ -352,7 +354,7 @@ final class IPWhois
 
         $statusCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         $headerSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        curl_close($ch);
+        // No curl_close() — see note above.
 
         $rawHeaders = substr((string) $raw, 0, $headerSize);
         $body       = substr((string) $raw, $headerSize);

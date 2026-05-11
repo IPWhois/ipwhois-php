@@ -5,6 +5,22 @@ All notable changes to `ipwhois/ipwhois-php` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-05-11
+
+### Fixed
+
+- Removed two `curl_close()` calls from the internal request handler. The
+  function has been a no-op since PHP 8.0 (`curl_init()` returns a
+  `CurlHandle` object that is automatically freed when it goes out of
+  scope) and was deprecated in PHP 8.5, which made the library emit:
+
+      Deprecated: Function curl_close() is deprecated since 8.5, as it
+      has no effect since PHP 8.0 in …/src/IPWhois.php
+
+  The handle is now released by PHP's garbage collector at the end of
+  `request()`. No behavioural change — public API, return shapes, and
+  error handling are identical to 1.2.0.
+
 ## [1.2.0] - 2026-05-10
 
 ### Added
